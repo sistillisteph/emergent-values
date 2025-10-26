@@ -12,8 +12,24 @@ from openai import AsyncOpenAI
 from tqdm.asyncio import tqdm_asyncio
 
 import google.generativeai as genai
-import imghdr
+import os
 import openai
+
+
+def _get_image_type(image_path: str) -> str:
+    """Get image type from file extension, replacing deprecated imghdr functionality."""
+    ext = os.path.splitext(image_path)[1].lower()
+    type_mapping = {
+        '.jpg': 'jpeg',
+        '.jpeg': 'jpeg', 
+        '.png': 'png',
+        '.gif': 'gif',
+        '.bmp': 'bmp',
+        '.webp': 'webp',
+        '.tiff': 'tiff',
+        '.tif': 'tiff'
+    }
+    return type_mapping.get(ext, 'jpeg')  # Default to 'jpeg' if type can't be determined
 from anthropic import Anthropic
 from dotenv import load_dotenv
 from fireworks.client import Fireworks, AsyncFireworks
@@ -136,7 +152,7 @@ class OpenAIAgent(LLMAgent):
         for message in messages:
             if (image_path := message.get('image_path')):
                 image_data = _encode_image(image_path)
-                image_type = imghdr.what(image_path) or 'jpeg'  # Default to 'jpeg' if type can't be determined
+                image_type = _get_image_type(image_path)
                 message['content'] = [
                     {"type": "text", "text": message['content']},
                     {"type": "image_url", "image_url": {"url": f"data:image/{image_type};base64,{image_data}"}}
@@ -342,7 +358,7 @@ class AnthropicAgent(LLMAgent):
         for message in messages:
             if (image_path := message.get('image_path')):
                 image_data = _encode_image(image_path)
-                image_type = imghdr.what(image_path) or 'jpeg' 
+                image_type = _get_image_type(image_path) 
                 message['content'] = [
                     {
                         "type": "image",
